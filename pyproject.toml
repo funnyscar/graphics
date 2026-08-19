@@ -1,0 +1,13 @@
+[project]
+name = "graphics"
+version = "0.1.0"
+description = "some graphics projects"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "mfem>=4.8.0.1",
+    "moderngl>=5.12.0",
+    "moderngl-window>=3.1.1",
+]
+
+
