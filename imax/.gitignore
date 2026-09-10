@@ -1,0 +1,5 @@
+imax_out/
+_frames/
+*.mp4
+__pycache__/
+frame_*.png
