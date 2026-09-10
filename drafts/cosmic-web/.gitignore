@@ -1,0 +1,10 @@
+out/
+page/node_modules/
+page/dist/
+page/.observablehq/
+page/src/.observablehq/
+page/katex-inline.css
+page/src/cosmic-web.mp4
+page/src/power.png
+stills_dl/
+__pycache__/
