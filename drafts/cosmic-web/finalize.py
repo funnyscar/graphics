@@ -4,7 +4,8 @@ Publish the cosmic-web graphic:
   * upload dist/<slug>/**  to  r2://experiments/graphics/<slug>/
   * ensure machinedata.graphics exists
   * embed the story with text-embedding-3-large (via OpenRouter)
-  * upsert the row (slug, title, description, r2_link, created_at, video_link, vector)
+  * upsert the row (slug, title, description, r2_link, created_at, video_link,
+    image_link, vector)  —  cover.jpg is a representative still from the video
 
     modal run drafts/cosmic-web/finalize.py --dist-dir dist/cosmic-web
 """
@@ -43,10 +44,12 @@ ramp, a slow 20-degree rotation and zoom, at 1280x720.
 
 R2_LINK = f"https://experiments.funnyscar.com/graphics/{SLUG}/index.html"
 VIDEO_LINK = f"https://experiments.funnyscar.com/graphics/{SLUG}/cosmic-web.mp4"
+IMAGE_LINK = f"https://experiments.funnyscar.com/graphics/{SLUG}/cover.jpg"
 
 CT = {
     ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
     ".css": "text/css; charset=utf-8", ".mp4": "video/mp4", ".png": "image/png",
+    ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
     ".json": "application/json", ".svg": "image/svg+xml", ".woff2": "font/woff2",
     ".woff": "font/woff", ".ttf": "font/ttf", ".map": "application/json",
 }
@@ -105,20 +108,23 @@ def publish(files: dict):
             r2_link     text,
             created_at  timestamptz not null default now(),
             video_link  text,
+            image_link  text,
             vector      vector(3072)
         )
     """)
+    cur.execute("alter table graphics add column if not exists image_link text")
     cur.execute("""
-        insert into graphics (slug, title, description, r2_link, created_at, video_link, vector)
-        values (%s,%s,%s,%s,%s,%s,%s)
+        insert into graphics (slug, title, description, r2_link, created_at, video_link, image_link, vector)
+        values (%s,%s,%s,%s,%s,%s,%s,%s)
         on conflict (slug) do update set
             title=excluded.title, description=excluded.description,
             r2_link=excluded.r2_link, video_link=excluded.video_link,
+            image_link=excluded.image_link,
             vector=excluded.vector, created_at=excluded.created_at
     """, (SLUG, TITLE, DESCRIPTION, R2_LINK,
-          datetime.datetime.now(datetime.timezone.utc), VIDEO_LINK,
+          datetime.datetime.now(datetime.timezone.utc), VIDEO_LINK, IMAGE_LINK,
           "[" + ",".join(f"{x:.7f}" for x in vec) + "]"))
-    cur.execute("select slug,title,r2_link,video_link,created_at,vector is not null from graphics where slug=%s", (SLUG,))
+    cur.execute("select slug,title,r2_link,video_link,image_link,created_at,vector is not null from graphics where slug=%s", (SLUG,))
     print("  row:", cur.fetchone())
     c.close()
     return R2_LINK
@@ -128,6 +134,7 @@ def publish(files: dict):
 def main(dist_dir: str = "dist/cosmic-web"):
     root = pathlib.Path(dist_dir)
     assert (root / "index.html").exists(), f"no index.html in {root}"
+    assert (root / "cover.jpg").exists(), f"no cover.jpg in {root} (screenshot a representative video frame)"
     files = {}
     for p in sorted(root.rglob("*")):
         if p.is_file():

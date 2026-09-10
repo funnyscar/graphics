@@ -65,3 +65,18 @@ and are downloaded to `drafts/cosmic-web/out/`:
 cd drafts/cosmic-web/page && npm install && npm run build
 # → dist/ ; deployed copy lives in the repo-root dist/<slug>/
 ```
+
+The deployed `dist/cosmic-web/` also carries `cover.jpg` — a representative
+still from the video (`convert out/today.png -quality 88 dist/cosmic-web/cover.jpg`),
+used for the `image_link` column.
+
+## publish
+
+```bash
+modal run drafts/cosmic-web/finalize.py --dist-dir dist/cosmic-web
+```
+
+Uploads `dist/cosmic-web/**` to `r2://experiments/graphics/cosmic-web/`, embeds
+the story with `text-embedding-3-large` (OpenRouter), and upserts the row in
+`machinedata.graphics` (`slug, title, description, r2_link, created_at,
+video_link, image_link, vector`).
