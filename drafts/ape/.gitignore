@@ -1,0 +1,5 @@
+__pycache__/
+*.blend
+*.blend1
+ape_face.png
+ape_debug_*.png

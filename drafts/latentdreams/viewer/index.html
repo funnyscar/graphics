@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>latentdreams — mixing the latent features of many women</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; background: #0a0a0c; color: #d9dbe2; }
+  body { font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  header { padding: 28px 22px 10px; }
+  h1 { margin: 0 0 4px; font-size: 16px; color: #fff; letter-spacing: .04em; }
+  p { margin: 4px 0; max-width: 60ch; color: #9a9cab; }
+  main { display: grid; gap: 26px; padding: 18px 22px 60px;
+         grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: start; }
+  figure { margin: 0; background: #121216; border: 1px solid #24242c; border-radius: 10px;
+           overflow: hidden; }
+  figcaption { padding: 9px 12px; color: #babcc9; border-top: 1px solid #24242c; }
+  img, video { display: block; width: 100%; height: auto; background: #000; }
+  .wide { grid-column: 1 / -1; max-width: 720px; }
+  a { color: #8ab4ff; }
+  code { color: #e6c07b; }
+</style>
+</head>
+<body>
+<header>
+  <h1>latentdreams</h1>
+  <p>A pretrained StyleGAN2 generator (FFHQ) as a compressed model of the human
+     face. Anchor women are found with CLIP, then every W-layer group is driven
+     by its own drifting blend of all of them — so each frame is a different
+     mixture of every anchor at once.</p>
+  <p>Regenerate with <code>modal run latentdreams/latentdreams.py</code>.</p>
+</header>
+<main>
+  <figure class="wide">
+    <video src="../out/dream.mp4" autoplay loop muted playsinline></video>
+    <figcaption>dream.mp4 — seamless latent-feature loop</figcaption>
+  </figure>
+  <figure>
+    <img src="../out/anchors.png" alt="anchor faces" />
+    <figcaption>anchors — the women being mixed</figcaption>
+  </figure>
+  <figure>
+    <img src="../out/stylemix.png" alt="style mixing grid" />
+    <figcaption>stylemix — coarse layers down, fine layers (skin / colour / detail) across</figcaption>
+  </figure>
+  <figure>
+    <img src="../out/dream_contact.png" alt="dream contact sheet" />
+    <figcaption>dream_contact — nine frames from the loop</figcaption>
+  </figure>
+</main>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>nerfrooms — Big Bang Theory 4A, as a Gaussian splat</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  #hud {
+    position: fixed; left: 12px; top: 12px; z-index: 10;
+    font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #cfe3ff; background: rgba(10,16,28,.62); backdrop-filter: blur(6px);
+    padding: 10px 13px; border-radius: 9px; border: 1px solid rgba(120,160,220,.25);
+    max-width: 320px;
+  }
+  #hud b { color: #fff; }
+  #hud kbd {
+    background: #1b2740; border: 1px solid #33456a; border-bottom-width: 2px;
+    border-radius: 4px; padding: 0 5px; color: #dbe8ff;
+  }
+  #err { color: #ff9d9d; }
+  #load {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #9fb8dd; font: 14px ui-monospace, monospace; z-index: 9;
+  }
+</style>
+</head>
+<body>
+<div id="hud">
+  <b>nerfrooms</b> · apartment 4A<br />
+  <span id="status">loading splat…</span>
+  <div style="margin-top:7px">
+    <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move ·
+    <kbd>Q</kbd><kbd>E</kbd> down/up<br />
+    drag to look · <kbd>Shift</kbd> sprint · scroll = speed
+  </div>
+  <div id="err"></div>
+</div>
+<div id="load">initialising renderer…</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/",
+    "@mkkellogg/gaussian-splats-3d": "https://cdn.jsdelivr.net/npm/@mkkellogg/gaussian-splats-3d@0.4.7/build/gaussian-splats-3d.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import * as GS from '@mkkellogg/gaussian-splats-3d';
+
+// ?url= overrides the default; default is the exported splat pulled by `fetch`.
+const params = new URLSearchParams(location.search);
+const SPLAT_URL = params.get('url') || '../out/point_cloud.ply';
+
+const statusEl = document.getElementById('status');
+const errEl = document.getElementById('err');
+const loadEl = document.getElementById('load');
+
+const renderer = new THREE.WebGLRenderer({ antialias: false });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+document.body.appendChild(renderer.domElement);
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.05, 500);
+camera.position.set(0, 0, -0.1);
+
+const scene = new THREE.Scene();
+
+// --- fly controls: PointerLock for looking, WASDQE for moving ---------------
+const controls = new PointerLockControls(camera, renderer.domElement);
+renderer.domElement.addEventListener('mousedown', () => controls.lock());
+const key = {};
+addEventListener('keydown', (e) => (key[e.code] = true));
+addEventListener('keyup', (e) => (key[e.code] = false));
+let speed = 1.2;
+addEventListener('wheel', (e) => {
+  speed = THREE.MathUtils.clamp(speed * (e.deltaY > 0 ? 0.9 : 1.1), 0.05, 20);
+});
+
+const viewer = new GS.Viewer({
+  selfDrivenMode: false,
+  renderer,
+  camera,
+  threeScene: scene,
+  sharedMemoryForWorkers: false, // no COOP/COEP headers needed
+  crossOrigin: 'anonymous',
+  gpuAcceleratedSort: true,
+});
+
+viewer
+  .addSplatScene(SPLAT_URL, {
+    progressiveLoad: true,
+    onProgress: (pct) => (statusEl.textContent = `loading splat… ${pct | 0}%`),
+  })
+  .then(() => {
+    loadEl.remove();
+    statusEl.textContent = 'ready — click to enter';
+  })
+  .catch((e) => {
+    loadEl.remove();
+    statusEl.textContent = 'failed to load';
+    errEl.textContent =
+      `could not load ${SPLAT_URL}\n` +
+      'run the pipeline first: modal run nerfrooms/pipeline.py::train  then  ::fetch';
+    console.error(e);
+  });
+
+const clock = new THREE.Clock();
+const dir = new THREE.Vector3();
+function tick() {
+  requestAnimationFrame(tick);
+  const dt = Math.min(clock.getDelta(), 0.1);
+  const v = speed * (key['ShiftLeft'] || key['ShiftRight'] ? 3 : 1) * dt;
+  dir.set(
+    (key['KeyD'] ? 1 : 0) - (key['KeyA'] ? 1 : 0),
+    (key['KeyE'] ? 1 : 0) - (key['KeyQ'] ? 1 : 0),
+    (key['KeyS'] ? 1 : 0) - (key['KeyW'] ? 1 : 0)
+  );
+  if (dir.lengthSq() > 0) {
+    dir.normalize();
+    controls.moveRight(dir.x * v);
+    controls.moveForward(-dir.z * v);
+    camera.position.y += dir.y * v;
+  }
+  viewer.update();
+  viewer.render();
+}
+tick();
+
+addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
